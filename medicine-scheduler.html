@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medicine Schedule Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .medicine-search {
+            position: relative;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-result-item.manual-entry {
+            background: #e7f5ff;
+            font-weight: 600;
+            color: #1971c2;
+        }
+
+        .search-result-item.manual-entry:hover {
+            background: #d0ebff;
+        }
+
+        .search-helper {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #40c057;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #fa5252;
+        }
+
+        .medicine-list {
+            margin-top: 30px;
+        }
+
+        .medicine-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .medicine-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .medicine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .medicine-name {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .medicine-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .detail-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 1em;
+            color: #333;
+            margin-top: 3px;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status-available {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .status-unavailable {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        .button-group {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #pdfContent {
+            display: none;
+        }
+
+        .pdf-view .medicine-card {
+            page-break-inside: avoid;
+        }
+
+        .loading {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .medicine-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .medicine-header > div:last-child {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 Medicine Schedule Generator</h1>
+        <p class="subtitle">Create and manage your personalized medicine schedule</p>
+
+        <div class="form-section">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Add Medicine</h2>
+            
+            <div class="form-row">
+                <div class="form-group medicine-search">
+                    <label for="medicineName">Medicine Name *</label>
+                    <input type="text" id="medicineName" placeholder="Start typing medicine name..." autocomplete="off">
+                    <div class="search-results" id="searchResults"></div>
+                    <div class="search-helper">💡 Can't find it? Just type and continue - we'll use your entry</div>
+                    <div class="loading" id="searchLoading" style="display: none;">Searching...</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="medicineType">Type *</label>
+                    <select id="medicineType" required>
+                        <option value="">Select Type</option>
+                        <option value="tablet">Tablet</option>
+                        <option value="capsule">Capsule</option>
+                        <option value="syrup">Syrup</option>
+                        <option value="injection">Injection</option>
+                        <option value="inhaler">Inhaler</option>
+                        <option value="drops">Drops (Eye/Ear/Nasal)</option>
+                        <option value="ointment">Ointment/Cream</option>
+                        <option value="patch">Patch</option>
+                        <option value="powder">Powder</option>
+                        <option value="spray">Spray</option>
+                        <option value="suppository">Suppository</option>
+                        <option value="lotion">Lotion</option>
+                        <option value="gel">Gel</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dosage">Dosage *</label>
+                    <input type="text" id="dosage" placeholder="e.g., 500mg, 5ml, 1 puff, 2 tablets" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="frequency">Frequency *</label>
+                    <select id="frequency" required>
+                        <option value="">Select Frequency</option>
+                        <option value="once-daily">Once Daily</option>
+                        <option value="twice-daily">Twice Daily</option>
+                        <option value="thrice-daily">Thrice Daily</option>
+                        <option value="four-times-daily">Four Times Daily</option>
+                        <option value="as-needed">As Needed (PRN)</option>
+                        <option value="every-other-day">Every Other Day</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Timing *</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="before-breakfast" class="timing-checkbox" style="margin-right: 5px;">
+                            Before Breakfast
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="after-breakfast" class="timing-checkbox" style="margin-right: 5px;">
+                            After Breakfast
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="morning" class="timing-checkbox" style="margin-right: 5px;">
+                            Morning
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="before-lunch" class="timing-checkbox" style="margin-right: 5px;">
+                            Before Lunch
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="after-lunch" class="timing-checkbox" style="margin-right: 5px;">
+                            After Lunch
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="afternoon" class="timing-checkbox" style="margin-right: 5px;">
+                            Afternoon
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="evening" class="timing-checkbox" style="margin-right: 5px;">
+                            Evening
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="before-dinner" class="timing-checkbox" style="margin-right: 5px;">
+                            Before Dinner
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="after-dinner" class="timing-checkbox" style="margin-right: 5px;">
+                            After Dinner
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="night" class="timing-checkbox" style="margin-right: 5px;">
+                            Night
+                        </label>
+                        <label style="display: flex; align-items: center; margin: 0;">
+                            <input type="checkbox" value="bedtime" class="timing-checkbox" style="margin-right: 5px;">
+                            Bedtime
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="duration">Duration</label>
+                    <input type="text" id="duration" placeholder="e.g., 7 days, 2 weeks, 1 month, ongoing">
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status *</label>
+                    <select id="status" required>
+                        <option value="available">✓ Available</option>
+                        <option value="unavailable">✗ Unavailable - Need to Purchase</option>
+                        <option value="running-low">⚠ Running Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="notes">Additional Notes</label>
+                    <textarea id="notes" rows="3" placeholder="Special instructions, side effects to watch, food restrictions, storage instructions, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="addMedicine()">➕ Add Medicine</button>
+            </div>
+        </div>
+
+        <div class="medicine-list" id="medicineList">
+            <h2 style="margin-bottom: 20px; color: #667eea;">Medicine Schedule</h2>
+            <div id="medicineCards"></div>
+        </div>
+
+        <div class="button-group" style="margin-top: 30px;">
+            <button class="btn btn-success" onclick="generatePDF()">📄 Generate PDF</button>
+            <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <!-- Hidden PDF Content -->
+    <div id="pdfContent"></div>
+
+    <script>
+        let medicines = [];
+        let debounceTimer;
+        let currentSearchQuery = '';
+
+        // Medicine search using RxNav API
+        async function searchMedicine(query) {
+            if (query.length < 2) {
+                document.getElementById('searchResults').classList.remove('active');
+                document.getElementById('searchLoading').style.display = 'none';
+                return;
+            }
+
+            currentSearchQuery = query;
+            document.getElementById('searchLoading').style.display = 'block';
+
+            try {
+                const response = await fetch(`https://rxnav.nlm.nih.gov/REST/spellingsuggestions.json?name=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('searchResults');
+                resultsDiv.innerHTML = '';
+
+                if (data.suggestionGroup && data.suggestionGroup.suggestionList) {
+                    const suggestions = data.suggestionGroup.suggestionList.suggestion || [];
+                    
+                    if (suggestions.length > 0) {
+                        suggestions.slice(0, 8).forEach(suggestion => {
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.textContent = suggestion;
+                            item.onclick = () => selectMedicine(suggestion);
+                            resultsDiv.appendChild(item);
+                        });
+                        
+                        // Add manual entry option
+                        const manualItem = document.createElement('div');
+                        manualItem.className = 'search-result-item manual-entry';
+                        manualItem.innerHTML = `✍️ Use "${query}" (Manual Entry)`;
+                        manualItem.onclick = () => selectMedicine(query);
+                        resultsDiv.appendChild(manualItem);
+                        
+                        resultsDiv.classList.add('active');
+                    } else {
+                        // No results - offer manual entry
+                        const manualItem = document.createElement('div');
+                        manualItem.className = 'search-result-item manual-entry';
+                        manualItem.innerHTML = `✍️ Use "${query}" (Not found in database - will use your entry)`;
+                        manualItem.onclick = () => selectMedicine(query);
+                        resultsDiv.appendChild(manualItem);
+                        resultsDiv.classList.add('active');
+                    }
+                } else {
+                    // API issue - offer manual entry
+                    const manualItem = document.createElement('div');
+                    manualItem.className = 'search-result-item manual-entry';
+                    manualItem.innerHTML = `✍️ Use "${query}" (Manual Entry)`;
+                    manualItem.onclick = () => selectMedicine(query);
+                    resultsDiv.appendChild(manualItem);
+                    resultsDiv.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error searching medicines:', error);
+                // On error, offer manual entry
+                const resultsDiv = document.getElementById('searchResults');
+                resultsDiv.innerHTML = '';
+                const manualItem = document.createElement('div');
+                manualItem.className = 'search-result-item manual-entry';
+                manualItem.innerHTML = `✍️ Use "${query}" (Search unavailable - will use your entry)`;
+                manualItem.onclick = () => selectMedicine(query);
+                resultsDiv.appendChild(manualItem);
+                resultsDiv.classList.add('active');
+            } finally {
+                document.getElementById('searchLoading').style.display = 'none';
+            }
+        }
+
+        function selectMedicine(name) {
+            document.getElementById('medicineName').value = name;
+            document.getElementById('searchResults').classList.remove('active');
+        }
+
+        // Debounced search
+        document.getElementById('medicineName').addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchMedicine(e.target.value);
+            }, 300);
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.medicine-search')) {
+                document.getElementById('searchResults').classList.remove('active');
+            }
+        });
+
+        function addMedicine() {
+            const name = document.getElementById('medicineName').value.trim();
+            const type = document.getElementById('medicineType').value;
+            const dosage = document.getElementById('dosage').value.trim();
+            const frequency = document.getElementById('frequency').value;
+            const duration = document.getElementById('duration').value.trim();
+            const status = document.getElementById('status').value;
+            const notes = document.getElementById('notes').value.trim();
+            
+            const timingCheckboxes = document.querySelectorAll('.timing-checkbox:checked');
+            const timing = Array.from(timingCheckboxes).map(cb => cb.value);
+
+            if (!name || !type || !dosage || !frequency || timing.length === 0) {
+                alert('Please fill in all required fields (marked with *)');
+                return;
+            }
+
+            const medicine = {
+                id: Date.now(),
+                name,
+                type,
+                dosage,
+                frequency,
+                timing,
+                duration: duration || 'As prescribed',
+                status,
+                notes
+            };
+
+            medicines.push(medicine);
+            displayMedicines();
+            clearForm();
+        }
+
+        function displayMedicines() {
+            const container = document.getElementById('medicineCards');
+            
+            if (medicines.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No medicines added yet. Add your first medicine above!</p>';
+                return;
+            }
+
+            container.innerHTML = medicines.map(med => `
+                <div class="medicine-card">
+                    <div class="medicine-header">
+                        <div class="medicine-name">${med.name}</div>
+                        <div>
+                            <span class="status-badge ${
+                                med.status === 'available' ? 'status-available' : 
+                                med.status === 'running-low' ? 'status-unavailable' : 
+                                'status-unavailable'
+                            }">
+                                ${
+                                    med.status === 'available' ? '✓ Available' : 
+                                    med.status === 'running-low' ? '⚠ Running Low' : 
+                                    '✗ Need to Purchase'
+                                }
+                            </span>
+                            <button class="btn btn-danger" style="padding: 5px 15px; margin-left: 10px;" onclick="deleteMedicine(${med.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div class="medicine-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Type</div>
+                            <div class="detail-value">${capitalize(med.type)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Dosage</div>
+                            <div class="detail-value">${med.dosage}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Frequency</div>
+                            <div class="detail-value">${formatFrequency(med.frequency)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Duration</div>
+                            <div class="detail-value">${med.duration}</div>
+                        </div>
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <div class="detail-label">Timing</div>
+                            <div class="detail-value">${med.timing.map(t => formatTiming(t)).join(', ')}</div>
+                        </div>
+                        ${med.notes ? `
+                        <div class="detail-item" style="grid-column: 1 / -1;">
+                            <div class="detail-label">Notes</div>
+                            <div class="detail-value">${med.notes}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteMedicine(id) {
+            if (confirm('Are you sure you want to delete this medicine?')) {
+                medicines = medicines.filter(med => med.id !== id);
+                displayMedicines();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('medicineName').value = '';
+            document.getElementById('medicineType').value = '';
+            document.getElementById('dosage').value = '';
+            document.getElementById('frequency').value = '';
+            document.getElementById('duration').value = '';
+            document.getElementById('status').value = 'available';
+            document.getElementById('notes').value = '';
+            document.querySelectorAll('.timing-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all medicines?')) {
+                medicines = [];
+                displayMedicines();
+            }
+        }
+
+        function capitalize(str) {
+            return str.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
+        function formatFrequency(freq) {
+            const map = {
+                'once-daily': 'Once Daily',
+                'twice-daily': 'Twice Daily',
+                'thrice-daily': 'Thrice Daily',
+                'four-times-daily': 'Four Times Daily',
+                'as-needed': 'As Needed (PRN)',
+                'every-other-day': 'Every Other Day',
+                'weekly': 'Weekly',
+                'monthly': 'Monthly'
+            };
+            return map[freq] || freq;
+        }
+
+        function formatTiming(timing) {
+            return timing.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
+
+        function generatePDF() {
+            if (medicines.length === 0) {
+                alert('Please add at least one medicine to generate PDF');
+                return;
+            }
+
+            const currentDate = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            const pdfContent = `
+                <div style="padding: 30px; font-family: Arial, sans-serif;">
+                    <h1 style="color: #667eea; text-align: center; margin-bottom: 10px;">Medicine Schedule</h1>
+                    <p style="text-align: center; color: #666; margin-bottom: 30px;">Generated on ${currentDate}</p>
+                    
+                    ${medicines.map((med, index) => `
+                        <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 20px; page-break-inside: avoid;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 style="color: #333; margin: 0;">${index + 1}. ${med.name}</h2>
+                                <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 0.9em; 
+                                    ${med.status === 'available' 
+                                        ? 'background: #d3f9d8; color: #2b8a3e;' 
+                                        : med.status === 'running-low'
+                                        ? 'background: #fff3bf; color: #e67700;'
+                                        : 'background: #ffe3e3; color: #c92a2a;'}">
+                                    ${med.status === 'available' ? '✓ Available' : med.status === 'running-low' ? '⚠ Running Low' : '✗ Need to Purchase'}
+                                </span>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                                <div>
+                                    <strong style="color: #666;">Type:</strong> ${capitalize(med.type)}
+                                </div>
+                                <div>
+                                    <strong style="color: #666;">Dosage:</strong> ${med.dosage}
+                                </div>
+                                <div>
+                                    <strong style="color: #666;">Frequency:</strong> ${formatFrequency(med.frequency)}
+                                </div>
+                                <div>
+                                    <strong style="color: #666;">Duration:</strong> ${med.duration}
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #666;">Timing:</strong> ${med.timing.map(t => formatTiming(t)).join(', ')}
+                            </div>
+                            
+                            ${med.notes ? `
+                            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                <strong style="color: #666;">Notes:</strong> ${med.notes}
+                            </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                    
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #999;">
+                        <p>This is a computer-generated medicine schedule. Please consult your healthcare provider for any questions.</p>
+                    </div>
+                </div>
+            `;
+
+            const element = document.createElement('div');
+            element.innerHTML = pdfContent;
+
+            const opt = {
+                margin: 10,
+                filename: `medicine-schedule-${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // Initialize
+        displayMedicines();
+    </script>
+</body>
+</html>
